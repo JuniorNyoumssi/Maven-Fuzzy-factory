@@ -103,7 +103,7 @@ FROM   Min_pageview_id
 LEFT JOIN  bounced_sessions ON bounced_sessions.s_id= Min_pageview_id.website_session_id ;
 
 -- TASK: Calculate Bounce Rates for two specific urls
-
+    
 CREATE TEMPORARY TABLE First_landingpage1
 SELECT website_session_id, min(website_pageview_id) AS landing_id
 FROM website_pageviews
@@ -111,16 +111,29 @@ WHERE created_at < '2012-06-28'
 Group by website_session_id;
 
 CREATE TEMPORARY TABLE Url_landingpage
-SELECT First_landingpage1.website_session_id, website_pageviews.pageview_url ,First_landingpage1.landing_id 
+SELECT 
+       First_landingpage1.website_session_id, website_pageviews.pageview_url ,
+       First_landingpage1.landing_id 
 FROM First_landingpage1
 LEFT JOIN website_pageviews ON First_Landingpage1.Landing_id = website_pageviews.website_pageview_id;
 
-CREATE TEMPORARY TABLE Bounced_sessions
-SELECT Url_landingpage.website_session_id,Url_landingpage.pageview_url,COUNT(DISTINCT website_pageview_id) AS bounced_sessions
+CREATE TEMPORARY TABLE Bounced_session
+SELECT
+	Url_landingpage.website_session_id,Url_landingpage.pageview_url,
+    COUNT(DISTINCT website_pageviews.website_pageview_id) AS bounced_sessions
 FROM Url_landingpage
 LEFT JOIN website_pageviews ON Url_landingpage.website_session_id = website_pageviews.website_session_id
 group by Url_landingpage.website_session_id,Url_landingpage.pageview_url
 HAVING bounced_sessions = 1;
+
+
+CREATE TEMPORARY TABLE Bounced_rates
+SELECT 
+    Url_landingpage.pageview_url,
+    COUNT(DISTINCT Bounced_session.website_session_id)/COUNT(DISTINCT  Url_landingpage.website_session_id) AS bounced_rate
+FROM  Url_landingpage
+LEFT JOIN  Bounced_session ON  Url_landingpage.website_session_id = Bounced_session.website_session_id
+GROUP BY Url_landingpage.pageview_url;
 
 
 
