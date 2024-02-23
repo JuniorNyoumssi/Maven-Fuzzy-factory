@@ -178,9 +178,71 @@ SELECT
 FROM sessions_w_counts_lander_and_created_at
 
 GROUP BY
-    YEARWEEK(session_created_at)
-   
+    YEARWEEK(session_created_at);
+    
+ 
+-- TASK : Building Conversion Funnels    
+
+SELECT 
+	   website_sessions.website_session_id
+      ,website_pageviews.pageview_url
+	  ,CASE WHEN pageview_url = '/lander-1' THEN 1 ELSE 0 END AS lander_1page
+      ,CASE WHEN pageview_url = '/home' THEN 1 ELSE 0 END AS  home_page
+      ,CASE WHEN pageview_url = '/products' THEN 1 ELSE 0 END AS products_page
+      ,CASE WHEN pageview_url = '/the-original-mr-fuzzy' THEN 1 ELSE 0 END AS mrfuzzy_page
+      ,CASE WHEN pageview_url = '/cart' THEN 1 ELSE 0 END AS cart_page
+FROM website_sessions
+LEFT JOIN website_pageviews
+ON  website_pageviews.website_session_id = website_sessions.website_session_id
+WHERE website_pageviews.created_at BETWEEN '2012-08-05' AND '2012-09-05'
+AND utm_source = 'gsearch' AND utm_campaign='nonbrand';
+
+CREATE TEMPORARY TABLE session_level_made_it
+SELECT 
+      website_session_id
+	 ,MAX(lander_1page) AS lander_1page_made_it
+     ,MAX(home_page) AS home_page_made_it
+     ,MAX(products_page) AS products_page_made_it
+     ,MAX(mrfuzzy_page) AS mrfuzzy_page_made_it
+     ,MAX(cart_page) AS cart_page_made_it
+FROM (SELECT 
+	   website_sessions.website_session_id
+      ,website_pageviews.pageview_url
+	  ,CASE WHEN pageview_url = '/lander-1' THEN 1 ELSE 0 END AS lander_1page
+      ,CASE WHEN pageview_url = '/home' THEN 1 ELSE 0 END AS  home_page
+      ,CASE WHEN pageview_url = '/products' THEN 1 ELSE 0 END AS products_page
+      ,CASE WHEN pageview_url = '/the-original-mr-fuzzy' THEN 1 ELSE 0 END AS mrfuzzy_page
+      ,CASE WHEN pageview_url = '/cart' THEN 1 ELSE 0 END AS cart_page
+FROM website_sessions
+LEFT JOIN website_pageviews
+ON  website_pageviews.website_session_id = website_sessions.website_session_id
+WHERE website_pageviews.created_at BETWEEN '2012-08-05' AND '2012-09-05'
+AND utm_source = 'gsearch' AND utm_campaign='nonbrand'
+) AS pageview_level
+
+GROUP BY
+      website_session_id ;
+     
+SELECT
+	  COUNT(DISTINCT website_session_id) AS sessions
+     ,COUNT(DISTINCT CASE WHEN lander_1page_made_it = 1 THEN website_session_id ELSE NULL END ) AS to_lander_1page
+     ,COUNT(DISTINCT CASE WHEN home_page_made_it = 1 THEN website_session_id ELSE NULL END ) AS to_home
+     ,COUNT(DISTINCT CASE WHEN products_page_made_it = 1 THEN website_session_id ELSE NULL END  ) AS to_products
+     ,COUNT(DISTINCT CASE WHEN mrfuzzy_page_made_it = 1 THEN  website_session_id ELSE NULL END) AS to_mrfuzzy
+     ,COUNT( DISTINCT CASE WHEN cart_page_made_it = 1 THEN website_session_id ELSE NULL END ) AS to_cart
+FROM session_level_made_it;
+
+SELECT
+      COUNT(DISTINCT CASE WHEN lander_1page_made_it = 1 THEN website_session_id ELSE NULL END )/ COUNT(DISTINCT website_session_id) AS to_lander1_page
+     ,COUNT(DISTINCT CASE WHEN home_page_made_it = 1 THEN website_session_id ELSE NULL END )/ COUNT(DISTINCT website_session_id) AS lander_clickrate
+     ,COUNT(DISTINCT CASE WHEN products_page_made_it = 1 THEN website_session_id ELSE NULL END  )/ COUNT(DISTINCT website_session_id) AS home_clickrate
+     ,COUNT(DISTINCT CASE WHEN mrfuzzy_page_made_it = 1 THEN  website_session_id ELSE NULL END)/ COUNT(DISTINCT website_session_id) AS products_clickrate
+     ,COUNT( DISTINCT CASE WHEN cart_page_made_it = 1 THEN website_session_id ELSE NULL END )/ COUNT(DISTINCT website_session_id) AS mrfuzzy_clickrate
+FROM session_level_made_it;
         
+        
+
+
 
 
 
